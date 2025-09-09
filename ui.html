@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Figma Styles to CSV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: var(--figma-color-bg, #f9fafb);
+      color: var(--figma-color-text, #111827);
+      min-height: 100vh;
+    }
+
+    .container {
+      padding: 0;
+      max-width: 100vw;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Loading State */
+    .loading-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--figma-color-border, #e5e7eb);
+      border-top: 3px solid var(--figma-color-bg-brand, #3b82f6);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+
+
+    /* Cards - Accordion Style */
+    .card {
+      background: var(--figma-color-bg, white);
+      border: 1px solid var(--figma-color-border, #e5e7eb);
+      border-radius: 0;
+      margin-bottom: 0;
+      overflow: hidden;
+    }
+
+    .card:not(:last-child) {
+      border-bottom: none;
+    }
+
+    .card:first-child {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    .card:last-child {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .card-header {
+      padding: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .card-header:hover {
+      background: var(--figma-color-bg-secondary, #f9fafb);
+    }
+
+    .card-header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--figma-color-text, #111827);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-content {
+      padding: 16px;
+    }
+
+    /* Filters */
+    .filters-section {
+      padding-top: 0px;
+    }
+
+    .filter-group {
+      border-top: 1px solid var(--figma-color-border, #e5e7eb);
+      padding-top: 16px;
+      margin-bottom: 16px;
+    }
+
+    .filter-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--figma-color-text-secondary, #374151);
+      margin-bottom: 12px;
+    }
+
+    .filter-options {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .filter-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--figma-color-bg, #ffffff);
+      border: 1px solid var(--figma-color-border, #d1d5db);
+    }
+
+    .filter-option label {
+      font-size: 14px;
+      color: var(--figma-color-text, #374151);
+      cursor: pointer;
+    }
+
+    .filter-summary {
+      padding-top: 16px;
+      border-top: 1px solid var(--figma-color-border, #e5e7eb);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .filter-summary-text {
+      font-size: 14px;
+      color: var(--figma-color-text-secondary, #6b7280);
+    }
+
+    .filter-summary-count {
+      font-weight: 500;
+      color: var(--figma-color-text, #111827);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1px solid var(--figma-color-border, #d1d5db);
+      border-radius: 6px;
+      background: var(--figma-color-bg-secondary, white);
+      color: var(--figma-color-text-secondary, #374151);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: var(--figma-color-bg-tertiary, #f3f4f6);
+      border-color: var(--figma-color-border-strong, #9ca3af);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      height: 28px;
+    }
+
+    .btn-outline {
+      background: var(--figma-color-bg-secondary, white);
+      color: var(--figma-color-text, #374151);
+    }
+
+    .btn-primary {
+      background: var(--figma-color-bg-brand, #3b82f6);
+      border-color: var(--figma-color-bg-brand, #3b82f6);
+      color: var(--figma-color-text-onbrand, white);
+    }
+
+    .btn-primary:hover {
+      background: var(--figma-color-bg-brand-hover, #2563eb);
+      border-color: var(--figma-color-bg-brand-hover, #2563eb);
+    }
+
+    .btn-ghost {
+      border: none;
+      background: transparent;
+    }
+
+    .btn-ghost:hover {
+      background: var(--figma-color-bg-tertiary, #f3f4f6);
+    }
+
+    .btn-square {
+      padding: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* CSV Output */
+    .csv-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .csv-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .csv-textarea {
+      width: 100%;
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--figma-color-border, #e5e7eb);
+      border-radius: 6px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      resize: none;
+      background: var(--figma-color-bg, white);
+      color: var(--figma-color-text, #111827);
+      outline: none;
+      white-space: pre;
+      overflow-x: auto;
+      overflow-y: auto;
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+      min-height: 0; /* Для корректного flex поведения */
+    }
+
+    .csv-textarea:focus {
+      outline: 2px solid var(--figma-color-bg-brand, #3b82f6);
+      outline-offset: 2px;
+      border-color: var(--figma-color-bg-brand, #3b82f6);
+    }
+
+    /* CSV Textarea Scrollbar Styles */
+    .csv-textarea::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .csv-textarea::-webkit-scrollbar-track {
+      background: var(--figma-color-bg-tertiary, #f9fafb);
+      border-radius: 4px;
+    }
+
+    .csv-textarea::-webkit-scrollbar-thumb {
+      background: var(--figma-color-border, #9ca3af);
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .csv-textarea::-webkit-scrollbar-thumb:hover {
+      background: var(--figma-color-text-tertiary, #6b7280);
+    }
+
+    .csv-textarea::-webkit-scrollbar-corner {
+      background: var(--figma-color-bg-tertiary, #f9fafb);
+    }
+
+    /* Firefox scrollbar */
+    .csv-textarea {
+      scrollbar-width: thin;
+      scrollbar-color: var(--figma-color-border-strong, #9ca3af) var(--figma-color-bg-tertiary, #f9fafb);
+    }
+
+    /* CSV Footer */
+    .csv-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--figma-color-text-secondary, #6b7280);
+      margin-top: 8px;
+    }
+
+    .csv-footer .csv-hint {
+      color: var(--figma-color-text-brand, #3b82f6);
+    }
+
+    /* Select Styles */
+    .select-container {
+      margin-bottom: 12px;
+    }
+
+    .select-label {
+      font-size: 12px;
+      color: var(--figma-color-text, #6b7280);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .select-dropdown {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--figma-color-border, #e5e7eb);
+      border-radius: 6px;
+      background: var(--figma-color-bg-secondary, white);
+      color: var(--figma-color-text, #374151);
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .select-dropdown:focus {
+      border-color: var(--figma-color-bg-brand, #3b82f6);
+      box-shadow: 0 0 0 3px var(--figma-color-border-onselected, rgba(59, 130, 246, 0.1));
+    }
+
+    .select-dropdown:hover {
+      border-color: var(--figma-color-border-strong, #9ca3af);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--figma-color-bg, white);
+      border: 1px solid var(--figma-color-border, #e5e7eb);
+      border-radius: 6px 6px 0 0;
+      padding: 12px;
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-info {
+      flex: 1;
+    }
+
+    .stat-number {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--figma-color-text, #111827);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--figma-color-text-secondary, #6b7280);
+    }
+
+    /* Icons */
+    .icon {
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+
+
+    .icon-md {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-palette { color: var(--figma-color-icon-brand, #3b82f6); }
+    .icon-type { color: var(--figma-color-icon-success, #10b981); }
+    .icon-variable { color: var(--figma-color-icon-secondary, #8b5cf6); }
+    .icon-chevron { color: var(--figma-color-icon-tertiary, #6b7280); }
+
+    /* Notifications */
+    .notification {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 300px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification.success {
+      background: var(--figma-color-bg-success, #d1fae5);
+      color: var(--figma-color-text-onsuccess, #065f46);
+      border: 1px solid var(--figma-color-border-success, #a7f3d0);
+    }
+
+    .notification.error {
+      background: var(--figma-color-bg-danger, #fee2e2);
+      color: var(--figma-color-text-ondanger, #991b1b);
+      border: 1px solid var(--figma-color-border-danger, #fecaca);
+    }
+
+    /* Error State */
+    .error-card {
+      background: var(--figma-color-bg-danger, #fef2f2);
+      border: 1px solid var(--figma-color-border-danger, #fecaca);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .error-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--figma-color-text-ondanger, #991b1b);
+      font-size: 14px;
+    }
+
+    /* CSV Card Layout */
+    .csv-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 380px;
+    }
+
+    .csv-card .card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .csv-card .csv-textarea-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0; /* Важно для правильного flex shrinking */
+    }
+
+    /* Utility Classes */
+    .hidden {
+      display: none !important;
+    }
+
+    .space-y-4 {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      flex: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .container {
+        padding: 0;
+      }
+
+      .csv-actions {
+        flex-direction: column;
+      }
+
+      .card-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .filter-options {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .csv-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading Figma styles...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="container hidden">
+    <!-- Notification Toast -->
+    <div id="notification" class="notification hidden">
+      <svg class="icon icon-md" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M8 12l2 2 4-4"></path>
+      </svg>
+      <span id="notification-message"></span>
+    </div>
+
+    <div class="space-y-4">
+
+
+      <!-- Data Filters -->
+      <div class="card">
+        <div class="card-header" onclick="toggleFilters()">
+          <div class="card-header-content">
+            <div class="card-title">
+              Export Settings
+            </div>
+            <svg id="filters-chevron" class="icon icon-md icon-chevron" viewBox="0 0 24 24">
+              <polyline points="6,9 12,15 18,9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <div id="filters-content" class="card-content filters-section hidden">
+          <!-- Data Format Settings -->
+          <div class="filter-group">
+            <div class="filter-label">Data Format</div>
+            <div class="select-container">
+              <label class="select-label" for="color-format">Color Format</label>
+              <select id="color-format" class="select-dropdown" onchange="handleColorFormatChange(this.value)">
+                <option value="rgba">RGBA (255, 255, 255, 255)</option>
+                <option value="hex-argb">HEX (AARRGGBB)</option>
+                <option value="hex-rgb">HEX (RRGGBB)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-label">Style Types</div>
+            <div class="filter-options">
+              <div class="filter-option">
+                <input type="checkbox" id="filter-colors" checked onchange="handleFilterChange('colors')">
+                <label for="filter-colors">
+                  Colors
+                </label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="filter-typography" checked onchange="handleFilterChange('typography')">
+                <label for="filter-typography">
+                  Typography
+                </label>
+              </div>
+              <div class="filter-option">
+                <input type="checkbox" id="filter-variables" checked onchange="handleFilterChange('variables')">
+                <label for="filter-variables">
+                  Variables
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-summary">
+            <div class="filter-summary-text">
+              Filtered results: <span class="filter-summary-count"><span id="summary-total">0</span> styles</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="selectAllFilters()">
+              Select All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div id="error-card" class="error-card hidden">
+        <div class="error-content">
+          <svg class="icon icon-md" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="error-message">Error loading styles</span>
+        </div>
+      </div>
+
+      <!-- CSV Output -->
+      <div class="card csv-card">
+        <div class="card-header">
+          <div class="csv-header">
+            <div class="card-title">CSV Output</div>
+            <div class="csv-actions">
+              <button class="btn btn-sm btn-primary" onclick="downloadCSV()">
+                <svg class="icon icon-md" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7,10 12,15 17,10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download CSV
+              </button>
+              <button class="btn btn-sm btn-outline" onclick="selectAllCSV()" title="Select all CSV text">
+                <svg class="icon icon-md" style="color: #3b82f6;" viewBox="0 0 24 24">
+                  <path d="m9 9 5 12 1.8-5.2L21 14Z"></path>
+                  <path d="M7.2 2.2 8 5.1l2.9.8-4.7 4.7z"></path>
+                </svg>
+                Select All
+              </button>
+              <button class="btn btn-sm btn-ghost btn-square" onclick="refreshStyles()" title="Refresh styles">
+                <svg class="icon icon-md" viewBox="0 0 24 24">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                  <path d="M21 3v5h-5"></path>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                  <path d="M3 21v-5h5"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="csv-textarea-container">
+            <textarea 
+              id="csv-textarea" 
+              class="csv-textarea" 
+              placeholder="CSV data will appear here..."
+              spellcheck="false"
+              readonly
+              onclick="selectTextarea()"
+            ></textarea>
+          </div>
+          <div class="csv-footer">
+            <span id="csv-row-count">No data</span>
+            <span class="csv-hint">Ctrl+A to select all</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-content">
+            <svg class="icon icon-md icon-palette" viewBox="0 0 24 24">
+              <circle cx="13.5" cy="6.5" r=".5"></circle>
+              <circle cx="17.5" cy="10.5" r=".5"></circle>
+              <circle cx="8.5" cy="7.5" r=".5"></circle>
+              <circle cx="6.5" cy="12.5" r=".5"></circle>
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+            </svg>
+            <div class="stat-info">
+              <div class="stat-number"><span id="colors-count">0</span> Colors</div>
+              <div class="stat-label">Fill styles</div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-content">
+            <svg class="icon icon-md icon-type" viewBox="0 0 24 24">
+              <polyline points="4,7 4,4 20,4 20,7"></polyline>
+              <line x1="9" y1="20" x2="15" y2="20"></line>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            <div class="stat-info">
+              <div class="stat-number"><span id="text-count">0</span> Fonts</div>
+              <div class="stat-label">Font styles</div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-content">
+            <svg class="icon icon-md icon-variable" viewBox="0 0 24 24">
+              <polygon points="8,3 16,3 21,8 21,16 16,21 8,21 3,16 3,8"></polygon>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+            <div class="stat-info">
+              <div class="stat-number"><span id="variables-count">0</span> Variables</div>
+              <div class="stat-label">Design tokens</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline JavaScript -->
+  <script>
+    // Global state
+    let currentStyles = [];
+    let currentCSV = '';
+    let filtersExpanded = false;
+    let dataLoaded = false; // Track if data has been loaded
+    let filters = {
+      colors: true,
+      typography: true,
+      variables: true
+    };
+    let colorFormat = 'rgba'; // Default format
+
+    // Handle Ctrl+A to select CSV text
+    document.addEventListener('keydown', function(event) {
+      // Support both Latin 'a' and Cyrillic 'ф' (U+0444) for Russian keyboard layout
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'a' || event.key === '\u0444')) {
+        const textarea = document.getElementById('csv-textarea');
+        const activeElement = document.activeElement;
+        
+        // If textarea is focused or no specific input is focused, select CSV content
+        if (textarea && (activeElement === textarea || !activeElement || activeElement === document.body)) {
+          event.preventDefault();
+          textarea.focus();
+          textarea.select();
+        }
+      }
+    });
+
+    // Initialize when DOM loads
+    document.addEventListener('DOMContentLoaded', function() {
+      loadStyles();
+    });
+
+    // Listen for messages from plugin code
+    window.addEventListener('message', function(event) {
+      const data = event.data.pluginMessage || event.data;
+      if (!data || typeof data !== 'object') return;
+      
+      const { type, styles, csvData, message } = data;
+      
+      if (type === 'styles-data') {
+        handleStylesData(styles, csvData);
+      } else if (type === 'csv-data') {
+        handleCsvData(data);
+      } else if (type === 'error') {
+        handleError(message);
+      }
+    });
+
+    function loadStyles() {
+      showLoading(true);
+      
+      // Check if we're in plugin environment
+      if (typeof window !== 'undefined' && window.parent && window.parent.postMessage) {
+        try {
+          window.parent.postMessage({ pluginMessage: { type: 'get-styles', colorFormat: colorFormat } }, '*');
+          
+          // Fallback timeout for plugin environment - only use mock if no response
+          setTimeout(() => {
+            if (!dataLoaded) {
+              fallbackToMockData();
+            }
+          }, 3000);
+        } catch (error) {
+          console.error('Error sending message to plugin:', error);
+          fallbackToMockData();
+        }
+      } else {
+        fallbackToMockData();
+      }
+    }
+
+    function fallbackToMockData() {
+      // Show empty state if no real data available
+      currentStyles = [];
+      updateCSV();
+      showLoading(false);
+    }
+
+    function handleStylesData(styles, csvData) {
+      dataLoaded = true; // Mark that we've received data
+      currentStyles = styles || [];
+      
+      updateCSV();
+      showLoading(false);
+    }
+
+    function handleCsvData(data) {
+      const { csvData, filteredStyles } = data;
+      
+      setCsvData(csvData);
+      updateStats(filteredStyles);
+    }
+
+    function handleError(message) {
+      console.error('Error:', message);
+      dataLoaded = true; // Mark that we've received a response (even if error)
+      showLoading(false);
+      showError(message);
+      currentStyles = [];
+      updateCSV();
+    }
+
+    function updateCSV() {
+      // Request CSV data from plugin instead of generating locally
+      if (typeof window !== 'undefined' && window.parent && window.parent.postMessage) {
+        try {
+          window.parent.postMessage({ 
+            pluginMessage: { 
+              type: 'generate-csv', 
+              filters: filters, 
+              colorFormat: colorFormat 
+            } 
+          }, '*');
+        } catch (error) {
+          console.error('Error requesting CSV update from plugin:', error);
+        }
+      } else {
+        // Fallback for non-plugin environment
+        setCsvData('');
+        updateStats([]);
+      }
+    }
+
+    function setCsvData(csv) {
+      currentCSV = csv;
+      document.getElementById('csv-textarea').value = csv;
+      
+      // Update row count
+      const rowCountElement = document.getElementById('csv-row-count');
+      if (csv) {
+        const rowCount = csv.split('\n').length - 1; // Subtract 1 for header row
+        rowCountElement.textContent = `${rowCount} rows generated`;
+      } else {
+        rowCountElement.textContent = 'No data';
+      }
+    }
+
+    function updateStats(filteredStyles) {
+      const colorStyles = filteredStyles.filter(s => s.type === 'FILL').length;
+      const textStyles = filteredStyles.filter(s => s.type === 'FONT').length;
+      // Variables are now counted as styles that have a mode (came from variables)
+      const variableStyles = filteredStyles.filter(s => s.mode && s.mode !== '').length;
+      const total = filteredStyles.length;
+      
+      document.getElementById('colors-count').textContent = colorStyles;
+      document.getElementById('text-count').textContent = textStyles;
+      document.getElementById('variables-count').textContent = variableStyles;
+      document.getElementById('summary-total').textContent = total;
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('hidden', !show);
+      document.getElementById('main-content').classList.toggle('hidden', show);
+    }
+
+    function showNotification(message, type) {
+      const notification = document.getElementById('notification');
+      const messageEl = document.getElementById('notification-message');
+      
+      messageEl.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.remove('hidden');
+      
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 3000);
+    }
+
+    function showError(message) {
+      const errorCard = document.getElementById('error-card');
+      const errorMessage = document.getElementById('error-message');
+      
+      errorMessage.textContent = message;
+      errorCard.classList.remove('hidden');
+    }
+
+    function toggleFilters() {
+      filtersExpanded = !filtersExpanded;
+      const content = document.getElementById('filters-content');
+      const chevron = document.getElementById('filters-chevron');
+      
+      content.classList.toggle('hidden', !filtersExpanded);
+      
+      if (filtersExpanded) {
+        chevron.innerHTML = '<polyline points="18,15 12,9 6,15"></polyline>';
+      } else {
+        chevron.innerHTML = '<polyline points="6,9 12,15 18,9"></polyline>';
+      }
+    }
+
+    function handleFilterChange(filterKey) {
+      filters[filterKey] = !filters[filterKey];
+      updateCSV();
+    }
+
+    function handleColorFormatChange(newFormat) {
+      colorFormat = newFormat;
+      
+      // Request new data from plugin with updated color format
+      if (typeof window !== 'undefined' && window.parent && window.parent.postMessage) {
+        try {
+          window.parent.postMessage({ pluginMessage: { type: 'get-styles', colorFormat: colorFormat } }, '*');
+        } catch (error) {
+          console.error('Error sending color format change message to plugin:', error);
+          // Fallback to local formatting
+          updateCSV();
+        }
+      } else {
+        // Not in plugin environment, use local formatting
+        updateCSV();
+      }
+    }
+
+    function selectAllFilters() {
+      filters.colors = true;
+      filters.typography = true;
+      filters.variables = true;
+      
+      document.getElementById('filter-colors').checked = true;
+      document.getElementById('filter-typography').checked = true;
+      document.getElementById('filter-variables').checked = true;
+      
+      updateCSV();
+    }
+
+    function selectTextarea() {
+      const textarea = document.getElementById('csv-textarea');
+      textarea.focus();
+    }
+
+    function selectAllCSV() {
+      const textarea = document.getElementById('csv-textarea');
+      if (textarea) {
+        textarea.focus();
+        textarea.select();
+      }
+    }
+
+    function downloadCSV() {
+      const blob = new Blob([currentCSV], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'figma-styles.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function refreshStyles() {
+      dataLoaded = false; // Reset data loaded flag
+      loadStyles();
+    }
+
+    function downloadCSV() {
+      const blob = new Blob([currentCSV], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'figma-styles.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Styles2CSV",
+  "version": "1.0.0",
+  "description": "Export Figma styles to CSV format - Vanilla JS Version",
+  "main": "code.js",
+  "scripts": {
+    "build": "npm run build:code",
+    "build:code": "tsc code.ts --outDir . --target es2017 --lib es2017,dom --typeRoots ./node_modules/@types,./node_modules/@figma --skipLibCheck",
+    "dev": "npm run build:code -- --watch",
+    "clean": "del-cli code.js || rm -f code.js"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.58.0",
+    "typescript": "^5.1.6"
+  }
+}
