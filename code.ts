@@ -161,6 +161,46 @@ async function createModeMapping(): Promise<Map<string, string>> {
   return modeMapping;
 }
 
+// Helper function to resolve variable value, handling VARIABLE_ALIAS references
+async function resolveVariableValue(
+  value: any, 
+  modeId: string,
+  visitedIds: Set<string> = new Set()
+): Promise<any> {
+  // Check if value is a VARIABLE_ALIAS reference
+  if (value && typeof value === 'object' && 'type' in value && value.type === 'VARIABLE_ALIAS' && 'id' in value) {
+    const aliasId = value.id;
+    
+    // Prevent infinite loops in case of circular references
+    if (visitedIds.has(aliasId)) {
+      console.warn('Circular variable reference detected:', aliasId);
+      return null;
+    }
+    
+    visitedIds.add(aliasId);
+    
+    try {
+      // Get the referenced variable
+      const referencedVariable = await figma.variables.getVariableByIdAsync(aliasId);
+      
+      if (referencedVariable) {
+        // Get the value for the same mode, or fallback to first available mode
+        const referencedValue = referencedVariable.valuesByMode[modeId] || 
+                                Object.values(referencedVariable.valuesByMode)[0];
+        
+        // Recursively resolve in case the referenced variable also contains an alias
+        return await resolveVariableValue(referencedValue, modeId, visitedIds);
+      }
+    } catch (error) {
+      console.error('Error resolving variable alias:', aliasId, error);
+      return null;
+    }
+  }
+  
+  // If not an alias, return the value as is
+  return value;
+}
+
 // Function to get all styles
 async function getAllStyles(): Promise<StyleData[]> {
   const styles: StyleData[] = [];
@@ -237,18 +277,24 @@ async function getAllStyles(): Promise<StyleData[]> {
             for (const modeId of modeIds) {
               const value = variable.valuesByMode[modeId];
               
+              // Resolve variable value, handling VARIABLE_ALIAS references
+              const resolvedValue = await resolveVariableValue(value, modeId);
+              
               let valueString = '';
               
-              if (value && typeof value === 'object' && 'r' in value) {
+              if (resolvedValue && typeof resolvedValue === 'object' && 'r' in resolvedValue) {
                 // Handle color values
-                const colorValue = value as any;
+                const colorValue = resolvedValue as any;
                 const r = Math.round(colorValue.r * 255);
                 const g = Math.round(colorValue.g * 255);
                 const b = Math.round(colorValue.b * 255);
                 const a = colorValue.a !== undefined ? colorValue.a : 1;
                 valueString = a < 1 ? `rgba(${r}, ${g}, ${b}, ${a})` : `rgb(${r}, ${g}, ${b})`;
+              } else if (resolvedValue === null) {
+                // If resolution failed (circular reference or error)
+                valueString = 'Unable to resolve variable reference';
               } else {
-                valueString = String(value);
+                valueString = String(resolvedValue);
               }
 
               // Get readable mode name from mapping, fallback to ID if not found
@@ -357,6 +403,8 @@ function stylesToCSV(styles: StyleData[], colorFormat: 'rgba' | 'hex-argb' | 'he
   
   return [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
 }
+
+
 
 // Filter styles based on filters
 function filterStyles(styles: StyleData[], filters: { colors: boolean; typography: boolean; variables: boolean }): StyleData[] {
